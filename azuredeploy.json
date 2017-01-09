@@ -4,11 +4,12 @@
   "parameters": {
     "StorageAccountNamePrefix": {
       "type": "string",
-      "defaultValue": "o365storage"
+      "defaultValue": "jimmylindo003",
+        "minLength": 1
     },
     "storageAccountType": {
-      "type": "array",
-      "defaultValue": ["Standard_LRS", "Standard_LRS"]
+      "type": "string",
+      "defaultValue": "Standard_LRS"
     },
     "virtualNetworkName": {
       "type": "string",
@@ -231,18 +232,15 @@
   "resources": [
     {
       "type": "Microsoft.Storage/storageAccounts",
-      "name": "[concat(parameters('StorageAccountNamePrefix'),copyIndex())]",
+      "name": "(parameters('StorageAccountNamePrefix')",
       "apiVersion": "2015-06-15",
       "location": "[resourceGroup().location]",
-      "copy": {
-        "count": "[length(parameters('storageAccountType'))]",
-        "name": "storageCopy"
-      },
+      "dependsOn": [ ],
       "tags": {
-        "displayName": "[concat(parameters('StorageAccountNamePrefix'),copyIndex())]"
+        "displayName": "(parameters('StorageAccountNamePrefix')"
       },
       "properties": {
-        "accountType": "[parameters('storageAccountType')[copyIndex()]]"
+        "accountType": "[parameters('storageAccountType')]"
       }
     },
     {
