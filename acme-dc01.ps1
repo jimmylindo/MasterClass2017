@@ -1,0 +1,70 @@
+﻿New-Item -Path c:\ -Name temp -Type Directory
+#ladda hem användarlista
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/jimmylindo/MasterClass2017/master/FirstLastEurope.csv -OutFile C:\temp\FirstLastEurope.csv -UseBasicParsing
+#ladda hem Exchange
+Start-BitsTransfer https://download.microsoft.com/download/3/A/5/3A5CE1A3-FEAA-4185-9A27-32EA90831867/Exchange2013-x64-cu15.exe -Destination C:\temp
+#Skapa Share för användare
+New-SmbShare -name resources -Path C:\temp -FullAccess "corp\Domain Users"
+
+#Installera roller och OU struktur
+        Add-WindowsFeature RSAT-ADDS,RSAT-DNS-Server
+            New-ADOrganizationalUnit -Name "ACME" -ProtectedFromAccidentalDeletion $false
+            New-ADOrganizationalUnit -Path "OU=ACME,DC=corp,DC=acme,DC=com" -Name "Users" -ProtectedFromAccidentalDeletion $false
+            New-ADOrganizationalUnit -Path "OU=ACME,DC=corp,DC=acme,DC=com" -Name "Groups" -ProtectedFromAccidentalDeletion $false
+            New-ADOrganizationalUnit -Path "OU=ACME,DC=corp,DC=acme,DC=com" -Name "ServiceAccounts" -ProtectedFromAccidentalDeletion $false
+            New-ADOrganizationalUnit -Path "OU=ACME,DC=corp,DC=acme,DC=com" -Name "Computers" -ProtectedFromAccidentalDeletion $false
+            New-ADOrganizationalUnit -Path "OU=ACME,DC=corp,DC=acme,DC=com" -Name "Servers" -ProtectedFromAccidentalDeletion $false
+            New-ADOrganizationalUnit -Path "OU=ACME,DC=corp,DC=acme,DC=com" -Name "Contacts" -ProtectedFromAccidentalDeletion $false
+
+#Shapa användare
+
+
+        $Names = Import-CSV C:\Temp\FirstLastEurope.csv | Select-Object -First 50
+        $OU = "OU=Users,OU=ACME,DC=corp,DC=acme,DC=com"
+        $UPNSuffix = (Get-ADDomain).DnsRoot
+
+        #Import required module ActiveDirectory
+        try{
+            Import-Module ActiveDirectory -ErrorAction Stop
+        }
+        catch{
+            throw "Module GroupPolicy not Installed"
+        }
+
+        foreach ($name in $names) {
+            
+            #Generate username and check for duplicates
+            $firstname = $name.firstname
+            $lastname = $name.lastname 
+
+            $username = $name.firstname.Substring(0,3).tolower() + $name.lastname.Substring(0,3).tolower()
+            $exit = 0
+            $count = 1
+            do
+            { 
+                try { 
+                    $userexists = Get-AdUser -Identity $username
+                    $username = $firstname.Substring(0,3).tolower() + $lastname.Substring(0,3).tolower() + $count++
+                }
+                catch {
+                    $exit = 1
+                }
+            }
+            while ($exit -eq 0)
+
+            #Set Displayname and UserPrincipalNBame
+            $displayname = "$firstname $lastname ($username)"
+            if ($firstname -eq "alp") {
+                $upn = "{0}.{1}@{2}" -f $firstname,$lastname,(Get-ADForest).name
+            } else {
+                $upn = "$username@$upnsuffix"
+            }
+            #Create the user
+            Write-Host "Creating user $username in $ou"
+            New-ADUser –Name $displayname –DisplayName $displayname `
+                 –SamAccountName $username -UserPrincipalName $upn `
+                 -GivenName $firstname -Surname $lastname -description "Test User" `
+                 -Path $ou –Enabled $true `
+                 -PasswordNotRequired $true
+
+        }
