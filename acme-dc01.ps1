@@ -16,6 +16,15 @@ New-SmbShare -name resources -Path C:\temp -FullAccess "corp\Domain Users"
             New-ADOrganizationalUnit -Path "OU=ACME,DC=corp,DC=acme,DC=com" -Name "Servers" -ProtectedFromAccidentalDeletion $false
             New-ADOrganizationalUnit -Path "OU=ACME,DC=corp,DC=acme,DC=com" -Name "Contacts" -ProtectedFromAccidentalDeletion $false
 
+#Skapa GPO för local admin på klienter
+            $GPO = New-GPO -Name "Computer - Local administrator"
+            $domain = Get-ADDomain
+
+            Start-BitsTransfer -Source https://github.com/jimmylindo/MasterClass2017/raw/master/LocalGPO.zip -Destination C:\Temp
+            Expand-Archive -Path "c:\temp\localgpo.zip" -DestinationPath C:\temp\localgpo
+            Import-GPO -Path C:\temp\localgpo\JimmyTest -BackupId 45F24E2C-5826-4C62-9AF2-55E462B0774A -TargetGuid $GPO.Id -Domain $domain.Forest
+            New-GPLink -Name $gpo.DisplayName -Target "OU=Computers,OU=ACME,DC=corp,DC=acme,DC=com" 
+
 #Shapa användare
 
 
