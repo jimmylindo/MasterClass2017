@@ -6,6 +6,10 @@ Start-BitsTransfer https://download.microsoft.com/download/3/A/5/3A5CE1A3-FEAA-4
 #Skapa Share för användare
 New-SmbShare -name resources -Path C:\temp -FullAccess "corp\Domain Users"
 
+#Download labfiles
+            Start-BitsTransfer -Source https://github.com/jimmylindo/MasterClass2017/raw/master/labfiles.zip -Destination C:\Temp
+            Expand-Archive -Path "c:\temp\labfiles.zip" -DestinationPath C:\temp
+
 #Installera roller och OU struktur
         Add-WindowsFeature RSAT-ADDS,RSAT-DNS-Server
             New-ADOrganizationalUnit -Name "ACME" -ProtectedFromAccidentalDeletion $false
