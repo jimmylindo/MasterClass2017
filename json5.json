@@ -1,0 +1,1154 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+
+  "parameters": {
+    "StorageAccountNamePrefix": {
+      "type": "string",
+      "defaultValue": "acmestacc3",
+      "minLength": 1
+    },
+    "storageAccountType": {
+      "type": "array",
+      "defaultValue": [ "Standard_LRS", "Standard_LRS" ]
+    },
+    "StorageAccount": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Storage Account. This has to be a uinique name, up to 24 chars, all lowercase."
+      }
+    },
+    "vNet-onpremname": {
+      "type": "string",
+      "defaultValue": "acme-vnet-network",
+      "minLength": 1
+    },
+    "acme-ex01Name": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "acme-ex01"
+    },
+    "domainName": {
+      "type": "string",
+      "metadata": {
+        "description": "The FQDN of the AD Domain created "
+      },
+      "defaultValue": "corp.acme.com"
+    },
+    "AdminUserName": {
+      "type": "string",
+      "minLength": 1,
+      "defaultValue": "sysadmin"
+    },
+    "AdminPassword": {
+      "type": "securestring"
+    },
+
+
+      "StorageAccountURI": {
+        "type": "string",
+        "minLength": 1
+      },
+      "as-acmeDCsName": {
+        "type": "string",
+        "defaultValue": "as-domaincontrollers",
+        "minLength": 1
+      },
+      "as-acmeVMsName": {
+        "type": "string",
+        "defaultValue": "as-vmav",
+        "minLength": 1
+      },
+      "acme-dc01Name": {
+        "type": "string",
+        "defaultValue": "acme-dc01",
+        "minLength": 1
+      },
+      "acme-dc01IPAddress": {
+        "type": "string",
+        "metadata": {
+          "description": "The IP address of the new AD PDC"
+        },
+        "defaultValue": "10.0.10.4"
+      },
+      "DNSServerAddress": {
+        "type": "array",
+        "metadata": {
+          "Description": "The DNS address(es) of the DNS Server(s) used by the VNET"
+        },
+        "defaultValue": [ "10.0.10.4", "10.0.10.5" ]
+      },
+      "acme-dc02Name": {
+        "type": "string",
+        "defaultValue": "acme-dc02",
+        "minLength": 1
+      },
+      "acme-dc02IPAddress": {
+        "type": "string",
+        "metadata": {
+          "description": "The IP address of the new AD PDC"
+        },
+        "defaultValue": "10.0.10.5"
+      },
+      "acme-serverOSVersion": {
+        "type": "string",
+        "defaultValue": "2012-R2-Datacenter",
+        "allowedValues": [
+          "2008-R2-SP1",
+          "2012-Datacenter",
+          "2012-R2-Datacenter",
+          "Windows-Server-Technical-Preview"
+        ]
+      },
+      "vmdc01DSCModule": {
+        "type": "string",
+        "defaultValue": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/active-directory-new-domain-ha-2-dc/DSC/CreateADPDC.ps1.zip"
+      },
+      "vmdc01DSCFunction": {
+        "type": "string",
+        "defaultValue": "CreateADPDC.ps1\\CreateADPDC"
+      },
+      "vmdc02DSCModule": {
+        "type": "string",
+        "defaultValue": "https://raw.githubusercontent.com/jimmylindo/MasterClass2017/master/CreateADBDC.ps1.zip"
+      },
+      "vmdc02DSCFunction": {
+        "type": "string",
+        "defaultValue": "CreateADBDC.ps1\\CreateADBDC"
+      },
+      "assetLocation": {
+        "type": "string",
+        "metadata": {
+          "description": "The location of resources such as templates and DSC modules that the script is dependent"
+        },
+        "defaultValue": "https://raw.githubusercontent.com/jimmylindo/MasterClass2017/master/"
+      }
+
+
+    },
+  "variables": {
+    "vNet-OnpremPrefix": "10.0.0.0/16",
+    "Local-Subnet": "Local-Subnet",
+    "Local-SubnetPrefix": "10.0.10.0/24",
+    "acme-ex01ImagePublisher": "MicrosoftWindowsServer",
+    "acme-ex01OSDiskName": "acme-ex01OSDisk",
+    "acme-exchangesize": "Standard_D2_v2",
+    "acme-ex01VnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vNet-onpremname'))]",
+    "acme-ex01SubnetRef": "[concat(variables('acme-ex01VnetID'), '/subnets/', variables('Local-Subnet'))]",
+    "acme-ex01StorageAccountContainerName": "vhds",
+    "acme-ex01NicName": "[concat(parameters('acme-ex01Name'),'-','nic-0')]",
+    "acme-dc01ImagePublisher": "MicrosoftWindowsServer",
+    "acme-ImageOffer": "WindowsServer",
+    "acme-dc01OSDiskName": "acme-dc01OSDisk",
+    "acme-dc02OSDiskName": "acme-dc02OSDisk",
+    "acme-cl01OSDiskName": "acme-cl01OSDisk",
+    "acme-cl02OSDiskName": "acme-cl02OSDisk",
+    "acme-VmSize": "Standard_D1_v2",
+    "acme-dc01VnetID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vNet-onpremname'))]",
+    "acme-dc01SubnetRef": "[concat(variables('acme-dc01VnetID'), '/subnets/', variables('Local-Subnet'))]",
+    "acme-StorageAccountContainerName": "vhds",
+    "acme-dc01NicName": "[concat(parameters('acme-dc01Name'),'-','nic-0')]",
+    "acme-dc02NicName": "[concat(parameters('acme-dc02Name'),'-','nic-0')]",
+    "adDataDiskSize": 10,
+    "adPDCDataDisk": "ADPDCDataDisk",
+    "adBDCDataDisk": "ADBDCDataDisk",
+    "CreateADPDC": "CreateADPDC",
+    "CreateADBDC": "CreateADBDC",
+    "publicIPName": "acmepbip",
+    "publicIPName2": "acmepbip2"
+
+
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[concat(parameters('StorageAccountNamePrefix'),'sa',copyIndex())]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "count": "[length(parameters('storageAccountType'))]",
+        "name": "storageCopy"
+      },
+      "dependsOn": [],
+      "tags": {
+        "displayName": "[concat(parameters('StorageAccountNamePrefix'),'sa',copyIndex())]"
+      },
+      "properties": {
+        "accountType": "[parameters('storageAccountType')[copyIndex()]]"
+      }
+    },
+    {
+      "name": "[parameters('vNet-onpremname')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "[parameters('vNet-onpremname')]"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('vNet-OnpremPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('Local-Subnet')]",
+            "properties": {
+              "addressPrefix": "[variables('Local-SubnetPrefix')]"
+            }
+          }
+        ],
+        "dhcpOptions": {
+          "dnsServers": "[parameters('acme-dc01IPAddress')]"
+        }
+      }
+    },
+
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('publicIPName2')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publicIPAllocationMethod": "Static"
+      }
+    },
+
+    {
+      "apiVersion": "2015-05-01-preview",
+      "name": "loadBalancer",
+      "type": "Microsoft.Network/loadBalancers",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]"
+      ],
+      "properties": {
+        "frontendIPConfigurations": [
+          {
+            "name": "LBFE",
+            "properties": {
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses','acmepbip')]"
+              }
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "LBBAP"
+          }
+        ],
+        "inboundNatRules": [
+          {
+            "name": "rdp-dc01",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer'),'/frontendIPConfigurations/LBFE')]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 3389,
+              "backendPort": 3389,
+              "enableFloatingIP": false
+            }
+          },
+
+          {
+            "name": "rdp-dc02",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer'),'/frontendIPConfigurations/LBFE')]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 3392,
+              "backendPort": 3389,
+              "enableFloatingIP": false
+            }
+          }
+
+
+
+        ]
+
+      }
+    },
+
+    {
+      "apiVersion": "2015-05-01-preview",
+      "name": "loadBalancer2",
+      "type": "Microsoft.Network/loadBalancers",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName2'))]"
+      ],
+      "properties": {
+        "frontendIPConfigurations": [
+          {
+            "name": "LBFE2",
+            "properties": {
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses','acmepbip2')]"
+              }
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "LBBAP2"
+          }
+        ],
+        "inboundNatRules": [
+
+          {
+            "name": "rdp-ex01",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/frontendIPConfigurations/LBFE2')]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 3390,
+              "backendPort": 3389,
+              "enableFloatingIP": false
+            }
+          },
+          {
+            "name": "http-ex01",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/frontendIPConfigurations/LBFE2')]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 80,
+              "backendPort": 80,
+              "enableFloatingIP": false
+            }
+          },
+          {
+            "name": "https-ex01",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/frontendIPConfigurations/LBFE2')]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 443,
+              "backendPort": 443,
+              "enableFloatingIP": false
+            }
+          },
+          {
+            "name": "smtp-ex01",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/frontendIPConfigurations/LBFE2')]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 25,
+              "backendPort": 25,
+              "enableFloatingIP": false
+            }
+          },
+          {
+            "name": "rdp-cl01",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/frontendIPConfigurations/LBFE2')]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 3391,
+              "backendPort": 3389,
+              "enableFloatingIP": false
+            }
+          },
+          {
+            "name": "rdp-cl02",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/frontendIPConfigurations/LBFE2')]"
+              },
+              "protocol": "tcp",
+              "frontendPort": 3394,
+              "backendPort": 3389,
+              "enableFloatingIP": false
+            }
+          }
+
+        ]
+
+      }
+    },
+
+    {
+      "name": "[variables('acme-ex01NicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vNet-onpremname'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]",
+        "Microsoft.Network/loadBalancers/loadBalancer2"
+      ],
+      "tags": {
+        "displayName": "[variables('acme-ex01NicName')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.0.10.11",
+              "subnet": {
+                "id": "[variables('acme-ex01SubnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/backendAddressPools/LBBAP2')]"
+                }
+              ],
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/inboundNatRules/rdp-ex01')]"
+                },
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/inboundNatRules/http-ex01')]"
+                },
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/inboundNatRules/smtp-ex01')]"
+                },
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/inboundNatRules/https-ex01')]"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('acme-ex01Name')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('acme-ex01NicName'))]",
+        "[resourceId('Microsoft.Storage/storageAccounts', concat(parameters('StorageAccountNamePrefix'),'sa',0))]",
+        "Microsoft.Compute/virtualMachines/ACME-DC01/extensions/CreateADPDC"
+      ],
+      "tags": {
+        "displayName": "[parameters('acme-ex01Name')]"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('acme-exchangesize')]"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets/',parameters('as-acmeVMsName'))]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('acme-ex01Name')]",
+          "adminUsername": "[parameters('AdminUsername')]",
+          "adminPassword": "[parameters('AdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('acme-ex01ImagePublisher')]",
+            "offer": "[variables('acme-ImageOffer')]",
+            "sku": "[parameters('acme-serverOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "acme-ex01OSDisk",
+            "vhd": {
+              "uri": "[concat('https://', concat(parameters('StorageAccountNamePrefix'),'sa',0), '.blob.core.windows.net/', variables('acme-ex01StorageAccountContainerName'), '/', variables('acme-ex01OSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('acme-ex01NicName'))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "ACME-EX01/JoinDomain",
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', parameters('acme-ex01Name'))]",
+            "Microsoft.Compute/virtualMachines/extensions/ACME-DC01/CustomScript"
+          ],
+          "tags": {
+            "displayName": "ACME-EX01/JoinDomain"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "JsonADDomainExtension",
+            "typeHandlerVersion": "1.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "Name": "[parameters('domainName')]",
+              "User": "[concat(parameters('domainName'), '\\', parameters('AdminUserName'))]",
+              "Restart": "true",
+              "Options": "3",
+              "OUpath": "OU=Servers; OU=ACME; DC=corp; DC=acme; DC=com"
+
+            },
+            "protectedsettings": {
+              "Password": "[parameters('adminPassword')]"
+            }
+          }
+        }
+      ]
+    },
+
+
+
+    {
+      "name": "[parameters('as-acmeDCsName')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "[parameters('as-acmeDCsName')]"
+      },
+      "properties": {
+        "platformUpdateDomainCount": 1,
+        "platformFaultDomainCount": 1
+      }
+    },
+
+    {
+      "name": "[parameters('as-acmeVMsName')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "[parameters('as-acmeVMsName')]"
+      },
+      "properties": {
+        "platformUpdateDomainCount": 1,
+        "platformFaultDomainCount": 1
+      }
+    },
+
+    {
+      "name": "[variables('acme-dc01NicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vNet-onpremname'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]",
+        "Microsoft.Network/loadBalancers/loadBalancer"
+      ],
+      "tags": {
+        "displayName": "[variables('acme-dc01NicName')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('acme-dc01IPAddress')]",
+              "subnet": {
+                "id": "[variables('acme-dc01SubnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer'),'/backendAddressPools/LBBAP')]"
+                }
+              ],
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer'),'/inboundNatRules/rdp-dc01')]"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('acme-dc01Name')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', concat(parameters('StorageAccountNamePrefix'),'sa',1))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('acme-dc01NicName'))]",
+        "[resourceId('Microsoft.Compute/availabilitySets/',parameters('as-acmeDCsName'))]"
+      ],
+      "tags": {
+        "displayName": "[parameters('acme-dc01Name')]"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('acme-VmSize')]"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets/',parameters('as-acmeDCsName'))]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('acme-dc01Name')]",
+          "adminUsername": "[parameters('AdminUsername')]",
+          "adminPassword": "[parameters('AdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('acme-dc01ImagePublisher')]",
+            "offer": "[variables('acme-ImageOffer')]",
+            "sku": "[parameters('acme-serverOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "acme-dc01OSDisk",
+            "vhd": {
+              "uri": "[concat('https://', concat(parameters('StorageAccountNamePrefix'),'sa',1), '.blob.core.windows.net/', variables('acme-StorageAccountContainerName'), '/', variables('acme-dc01OSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "vhd": {
+                "uri": "[concat('https://', concat(parameters('StorageAccountNamePrefix'),'sa',1), '.blob.core.windows.net/', variables('acme-StorageAccountContainerName'), '/', variables('adPDCDataDisk'),'-1.vhd')]"
+              },
+              "name": "[concat(parameters('acme-dc01Name'),'-data-disk1')]",
+              "caching": "None",
+              "diskSizeGB": "[variables('adDataDiskSize')]",
+              "lun": 0,
+              "createOption": "empty"
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('acme-dc01NicName'))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "[variables('CreateADPDC')]",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', parameters('acme-dc01Name'))]"
+          ],
+          "tags": {
+            "displayName": "[variables('CreateADPDC')]"
+          },
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.9",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "ModulesUrl": "[parameters('vmdc01DSCModule')]",
+              "ConfigurationFunction": "[parameters('vmdc01DSCFunction')]",
+              "Properties": {
+                "DomainName": "[parameters('domainName')]",
+                "AdminCreds": {
+                  "UserName": "[parameters('adminUserName')]",
+                  "Password": "PrivateSettingsRef:AdminPassword"
+                }
+              }
+            },
+            "protectedSettings": {
+              "Items": {
+                "AdminPassword": "[parameters('adminPassword')]"
+              }
+            }
+          }
+        },
+        {
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "name": "ACME-DC01/CustomScript",
+          "apiVersion": "2015-06-15",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', parameters('acme-dc01Name'))]",
+            "[concat('Microsoft.Compute/virtualMachines/',parameters('acme-dc01Name'),'/extensions/CreateADPDC')]"
+          ],
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "CustomScriptExtension",
+            "typeHandlerVersion": "1.4",
+            "settings": {
+              "fileUris": [
+                "[concat(parameters('assetLocation'),'acme-dc01.ps1')]"
+              ],
+              "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File acme-dc01.ps1"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "updateVNetDNSAddress1",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/',parameters('acme-dc01Name'),'/extensions/CreateADPDC')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('assetLocation'), 'vnetupdate2.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "virtualNetworkName": {
+            "value": "acme-vnet-network"
+          },
+          "addressPrefix": {
+            "value": "[variables('vNet-OnpremPrefix')]"
+          },
+          "subnets": {
+            "value": [
+              {
+                "name": "[variables('Local-Subnet')]",
+                "properties": {
+                  "addressPrefix": "[variables('Local-SubnetPrefix')]"
+                }
+              }
+            ]
+          },
+          "dnsServers": {
+            "value": [ "10.0.10.4" ]
+          }
+        }
+      }
+    },
+
+
+    {
+      "name": "updateVNetDNSAddress2",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2015-01-01",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/',parameters('acme-dc02Name'),'/extensions/CreateADBDC')]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('assetLocation'), 'vnetupdate2.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "virtualNetworkName": {
+            "value": "acme-vnet-network"
+          },
+          "addressPrefix": {
+            "value": "[variables('vNet-OnpremPrefix')]"
+          },
+          "subnets": {
+            "value": [
+              {
+                "name": "[variables('Local-Subnet')]",
+                "properties": {
+                  "addressPrefix": "[variables('Local-SubnetPrefix')]"
+                }
+              }
+            ]
+          },
+          "dnsServers": {
+            "value": [ "10.0.10.4", "10.0.10.5" ]
+          }
+        }
+      }
+    },
+
+    {
+      "name": "[variables('acme-dc02NicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', parameters('vNet-onpremname'))]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]",
+        "Microsoft.Network/loadBalancers/loadBalancer"
+      ],
+      "tags": {
+        "displayName": "[variables('acme-dc02NicName')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[parameters('acme-dc02IPAddress')]",
+              "subnet": {
+                "id": "[variables('acme-dc01SubnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer'),'/backendAddressPools/LBBAP')]"
+                }
+              ],
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer'),'/inboundNatRules/rdp-dc02')]"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('acme-dc02Name')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', concat(parameters('StorageAccountNamePrefix'),'sa',1))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('acme-dc02NicName'))]",
+        "[resourceId('Microsoft.Compute/availabilitySets/',parameters('as-acmeDCsName'))]",
+        "Microsoft.Compute/virtualMachines/ACME-DC01/extensions/CreateADPDC"
+      ],
+      "tags": {
+        "displayName": "[parameters('acme-dc02Name')]"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('acme-VmSize')]"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets/',parameters('as-acmeDCsName'))]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('acme-dc02Name')]",
+          "adminUsername": "[parameters('AdminUsername')]",
+          "adminPassword": "[parameters('AdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('acme-dc01ImagePublisher')]",
+            "offer": "[variables('acme-ImageOffer')]",
+            "sku": "[parameters('acme-serverOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "acme-dc01OSDisk",
+            "vhd": {
+              "uri": "[concat('https://', concat(parameters('StorageAccountNamePrefix'),'sa',1), '.blob.core.windows.net/', variables('acme-StorageAccountContainerName'), '/', variables('acme-dc02OSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": [
+            {
+              "vhd": {
+                "uri": "[concat('https://', concat(parameters('StorageAccountNamePrefix'),'sa',1), '.blob.core.windows.net/', variables('acme-StorageAccountContainerName'), '/', variables('adBDCDataDisk'),'-1.vhd')]"
+              },
+              "name": "[concat(parameters('acme-dc01Name'),'-data-disk1')]",
+              "caching": "None",
+              "diskSizeGB": "[variables('adDataDiskSize')]",
+              "lun": 0,
+              "createOption": "empty"
+            }
+          ]
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('acme-dc02NicName'))]"
+            }
+          ]
+        }
+      },
+
+      "resources": [
+        {
+          "type": "extensions",
+          "name": "[variables('CreateADBDC')]",
+          "apiVersion": "2015-05-01-preview",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[concat('Microsoft.Compute/virtualMachines/', parameters('acme-dc02Name'))]"
+          ],
+          "tags": {
+            "displayName": "[variables('CreateADBDC')]"
+          },
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.9",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "ModulesUrl": "[parameters('vmdc02DSCModule')]",
+              "ConfigurationFunction": "[parameters('vmdc02DSCFunction')]",
+              "Properties": {
+                "DomainName": "[parameters('domainName')]",
+                "AdminCreds": {
+                  "UserName": "[parameters('adminUserName')]",
+                  "Password": "PrivateSettingsRef:AdminPassword"
+                }
+              }
+            },
+            "protectedSettings": {
+              "Items": {
+                "AdminPassword": "[parameters('adminPassword')]"
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "cl01-nic",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/updatevnetdnsaddress2",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]",
+        "Microsoft.Network/loadBalancers/loadBalancer2"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('acme-dc01SubnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/backendAddressPools/LBBAP2')]"
+                }
+              ],
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/inboundNatRules/rdp-cl01')]"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "ACME-CL01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "Microsoft.Network/networkInterfaces/cl01-nic"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_D1_v2"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets/',parameters('as-acmeVMsName'))]"
+        },
+        "osProfile": {
+          "computerName": "ACME-CL01",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "osDisk": {
+            "name": "Windows10cl01.vhd",
+            "osType": "Windows",
+            "createOption": "FromImage",
+            "image": {
+              "uri": "[parameters('StorageAccountURI')]"
+            },
+            "vhd": {
+              "uri": "[concat('https://', concat(parameters('StorageAccount')), '.blob.core.windows.net/', variables('acme-StorageAccountContainerName'), '/', variables('acme-cl01OSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces','cl01-nic')]"
+            }
+          ]
+        }
+
+      },
+      "resources": [
+        {
+          "name": "ACME-CL01/JoinDomain",
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "Microsoft.Compute/virtualMachines/acme-cl01"
+          ],
+          "tags": {
+            "displayName": "ACME-CL01/JoinDomain"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "JsonADDomainExtension",
+            "typeHandlerVersion": "1.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "Name": "[parameters('domainName')]",
+              "User": "[concat(parameters('domainName'), '\\', parameters('AdminUserName'))]",
+              "Restart": "true",
+              "Options": "3",
+              "OUpath": "OU=Computers; OU=ACME; DC=corp; DC=acme; DC=com"
+            },
+            "protectedsettings": {
+              "Password": "[parameters('adminPassword')]"
+            }
+          }
+        }
+      ]
+    },
+
+
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "cl02-nic",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/updatevnetdnsaddress2",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPName'))]",
+        "Microsoft.Network/loadBalancers/loadBalancer2"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('acme-dc01SubnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/backendAddressPools/LBBAP2')]"
+                }
+              ],
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(resourceId('Microsoft.Network/loadBalancers','loadBalancer2'),'/inboundNatRules/rdp-cl02')]"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "apiVersion": "2015-05-01-preview",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "ACME-CL02",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "Microsoft.Network/networkInterfaces/cl02-nic"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_D1_v2"
+        },
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets/',parameters('as-acmeVMsName'))]"
+        },
+        "osProfile": {
+          "computerName": "ACME-CL02",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "osDisk": {
+            "name": "Windows10cl02.vhd",
+            "osType": "Windows",
+            "createOption": "FromImage",
+            "image": {
+              "uri": "[parameters('StorageAccountURI')]"
+            },
+            "vhd": {
+              "uri": "[concat('https://', concat(parameters('StorageAccount')), '.blob.core.windows.net/', variables('acme-StorageAccountContainerName'), '/', variables('acme-cl02OSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces','cl02-nic')]"
+            }
+          ]
+        }
+
+      },
+      "resources": [
+        {
+          "name": "ACME-CL02/JoinDomain",
+          "type": "Microsoft.Compute/virtualMachines/extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2015-06-15",
+          "dependsOn": [
+            "Microsoft.Compute/virtualMachines/acme-cl02"
+          ],
+          "tags": {
+            "displayName": "ACME-CL02/JoinDomain"
+          },
+          "properties": {
+            "publisher": "Microsoft.Compute",
+            "type": "JsonADDomainExtension",
+            "typeHandlerVersion": "1.0",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "Name": "[parameters('domainName')]",
+              "User": "[concat(parameters('domainName'), '\\', parameters('AdminUserName'))]",
+              "Restart": "true",
+              "Options": "3",
+              "OUpath": "OU=Computers; OU=ACME; DC=corp; DC=acme; DC=com"
+            },
+            "protectedsettings": {
+              "Password": "[parameters('adminPassword')]"
+            }
+          }
+        }
+      ]
+    }
+
+
+
+
+  ],
+  "outputs": {
+
+  }
+
+}
