@@ -1,8 +1,8 @@
 ﻿#Skapa mapp för Exchange Media
-New-Item -Path c:\ -Name temp -Type Directory
+New-Item -Path c:\ -Name Exchangemedia -Type Directory
 
 #Starta filöverföring Exchange
-Start-BitsTransfer https://download.microsoft.com/download/2/D/B/2DB1EEA2-CD9B-48F1-8235-1C9B82D19D68/ExchangeServer2016-x64-cu6.iso -Destination C:\temp
+Start-BitsTransfer https://download.microsoft.com/download/2/D/B/2DB1EEA2-CD9B-48F1-8235-1C9B82D19D68/ExchangeServer2016-x64-cu6.iso -Destination C:\exchangemedia
 
 
 
@@ -14,4 +14,4 @@ Start-BitsTransfer https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4
 C:\temp\UcmaRuntimeSetup.exe -q
 
 #Montera Exchange Image i VM
-reg add HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run /v "Mount ISO" /d "C:\temp\ExchangeServer2016-x64-cu6.iso"
+reg add HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run /v "Mount ISO" /d "C:\exchangemedia\ExchangeServer2016-x64-cu6.iso"
