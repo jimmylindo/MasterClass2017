@@ -2,7 +2,7 @@
 #ladda hem användarlista
 Invoke-WebRequest -Uri https://raw.githubusercontent.com/jimmylindo/MasterClass2017/master/FirstLastEurope.csv -OutFile C:\temp\FirstLastEurope.csv -UseBasicParsing
 #ladda hem Exchange
-Start-BitsTransfer https://download.microsoft.com/download/3/A/5/3A5CE1A3-FEAA-4185-9A27-32EA90831867/Exchange2013-x64-cu15.exe -Destination C:\temp
+Start-BitsTransfer https://download.microsoft.com/download/3/9/B/39B8DDA8-509C-4B9E-BCE9-4CD8CDC9A7DA/Exchange2016-x64.exe -Destination C:\temp
 #Skapa Share för användare
 New-SmbShare -name resources -Path C:\temp -FullAccess "corp\Domain Users"
 
