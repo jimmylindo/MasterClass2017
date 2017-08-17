@@ -10,5 +10,8 @@ Install-WindowsFeature NET-Framework-45-Features, RPC-over-HTTP-proxy, RSAT-Clus
 #Installera Office Unified Communications Managed API 4.0 Runtime 
 Start-BitsTransfer https://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe -Destination C:\Exchangemedia
 
+#Close real-time monitor antimalware
+Set-MpPreference -DisableRealtimeMonitoring $true
+
 #Montera Exchange Image i VM
 reg add HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\Run /v "Mount ISO" /d "C:\exchangemedia\ExchangeServer2016-x64-cu6.iso"
