@@ -1,8 +1,7 @@
 ﻿New-Item -Path c:\ -Name temp -Type Directory
 #ladda hem användarlista
 Invoke-WebRequest -Uri https://raw.githubusercontent.com/jimmylindo/MasterClass2017/master/FirstLastEurope.csv -OutFile C:\temp\FirstLastEurope.csv -UseBasicParsing
-#ladda hem Exchange
-Start-BitsTransfer https://download.microsoft.com/download/3/9/B/39B8DDA8-509C-4B9E-BCE9-4CD8CDC9A7DA/Exchange2016-x64.exe -Destination C:\temp
+
 #Skapa Share för användare
 New-SmbShare -name resources -Path C:\temp -FullAccess "corp\Domain Users"
 
